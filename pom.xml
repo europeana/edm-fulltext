@@ -22,52 +22,54 @@
     </repositories>
 
     <artifactId>edm-fulltext</artifactId>
-    <version>1.0</version>
-    <packaging>pom</packaging>
+    <version>0.1-SNAPSHOT</version>
+    <packaging>jar</packaging>
 
     <name>EDM Fulltext</name>
-    <description>EDM Fulltext Class Model & Conversion Classes</description>
+    <description>EDM Fulltext Class Model and Conversion Classes</description>
 
     <properties>
         <java.version>11</java.version>
         <maven.compiler.release>${java.version}</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <api-commons.version>0.3.16</api-commons.version>
+        <git-commit-id.version>5.0.0</git-commit-id.version>
         <!-- upgraded to 2.5.14 as 2.6.x is not compatible with swagger (springfox-swagger-ui)-->
         <!-- org.apache.tomcat.embed version 9.0.56 is included uptill 2.6.3 which is vulnerable. See : CVE-2022-23181  -->
         <spring-boot.version>2.5.14</spring-boot.version>
-        <jackson.version>2.14.0</jackson.version>
-        <io-informatics.version>0.1.1</io-informatics.version>
-        <morphia.version>2.2.9</morphia.version>
-        <mongo-driver.version>4.5.1</mongo-driver.version>
-        <snappy.version>1.1.8.4</snappy.version>
-        <commons-lang3.version>3.9</commons-lang3.version>
-        <commons-io.version>2.4</commons-io.version>
-        <!-- Note that upgrading to a newer version of Junit Jupiter may not work with older IntelliJ versions (2019.2.1)
-             However for Maven verify goal a newer Jupiter version is no problem-->
-        <junit-jupiter.version>5.6.0</junit-jupiter.version>
-        <mockito.version>3.7.0</mockito.version>
-        <unitils.version>3.4.6</unitils.version>
-        <springdoc.version>1.6.13</springdoc.version>
-        <tomcat.version>9.0.58</tomcat.version>
-        <mock-webserver.version>4.9.0</mock-webserver.version>
-        <testcontainers.version>1.16.0</testcontainers.version>
-        <eclipse-jetty.version>11.0.11</eclipse-jetty.version>
-        <spring-batch.version>4.3.6</spring-batch.version>
+        <commons-lang3.version>3.12.0</commons-lang3.version>
+        <apache.http.clients>4.5.14</apache.http.clients>
     </properties>
 
     <dependencyManagement>
         <dependencies>
             <dependency>
+                <!-- Import dependency management from Spring Boot (because we don't use Spring-Boot as parent pom)-->
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-dependencies</artifactId>
+                <version>${spring-boot.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+        <dependencies>
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-starter-log4j2</artifactId>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.springframework.boot</groupId>
+                        <artifactId>spring-boot-starter-logging</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+
+            <dependency>
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-lang3</artifactId>
-                <version>3.12.0</version>
-            </dependency>
-            <dependency>
-                <groupId>log4j</groupId>
-                <artifactId>log4j</artifactId>
-                <version>1.2.16</version>
+                <version>${commons-lang3.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.github.jsonld-java</groupId>
@@ -77,107 +79,57 @@
             <dependency>
                 <groupId>org.apache.httpcomponents</groupId>
                 <artifactId>httpclient</artifactId>
-                <version>4.5.14</version>
+                <version>${apache.http.clients}</version>
             </dependency>
 		</dependencies>
-    </dependencyManagement>
 
     <build>
+        <finalName>${project.artifactId}</finalName>
+        <!--  allow Maven to manipulate resource files as a part of the build process.
+               build.properties by default is expanded by spring-boot-maven-plugin
+        -->
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+            </resource>
+        </resources>
         <plugins>
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-failsafe-plugin</artifactId>
-                <version>3.0.0-M5</version>
+                <groupId>io.github.git-commit-id</groupId>
+                <artifactId>git-commit-id-maven-plugin</artifactId>
+                <version>${git-commit-id.version}</version>
                 <executions>
                     <execution>
+                        <id>get-the-git-infos</id>
                         <goals>
-                            <goal>integration-test</goal>
-                            <goal>verify</goal>
+                            <goal>revision</goal>
                         </goals>
+                        <phase>initialize</phase>
                     </execution>
                 </executions>
                 <configuration>
-                    <classesDirectory>${project.build.directory}/classes</classesDirectory>
+                    <generateGitPropertiesFile>true</generateGitPropertiesFile>
+                    <generateGitPropertiesFilename>${project.build.outputDirectory}/git.properties</generateGitPropertiesFilename>
+                    <includeOnlyProperties>
+                        <includeOnlyProperty>^git.build.(time|version)$</includeOnlyProperty>
+                        <includeOnlyProperty>^git.commit.id.(abbrev|full)$</includeOnlyProperty>
+                    </includeOnlyProperties>
+                    <commitIdGenerationMode>full</commitIdGenerationMode>
                 </configuration>
             </plugin>
             <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>build-helper-maven-plugin</artifactId>
-                <version>3.0.0</version>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <version>${spring-boot.version}</version>
                 <executions>
                     <execution>
-                        <id>add-integration-test-source</id>
-                        <!-- Normally this would be attached to the generate-test-source phase,
-                          however we attach to generate-sources so that the git-code-format plugin can pick
-                          up integration test source files (see plugin config above) -->
-                        <phase>generate-sources</phase>
                         <goals>
-                            <goal>add-test-source</goal>
+                            <goal>repackage</goal>
                         </goals>
-                        <configuration>
-                            <!-- Configures the source directory of our integration tests -->
-                            <sources>
-                                <source>src/integration-test/java</source>
-                            </sources>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>add-integration-test-resources</id>
-                        <phase>generate-test-resources</phase>
-                        <goals>
-                            <goal>add-test-resource</goal>
-                        </goals>
-                        <configuration>
-                            <!-- Configures the resource directory of our integration tests -->
-                            <resources>
-                                <resource>
-                                    <filtering>true</filtering>
-                                    <directory>src/integration-test/resources</directory>
-                                </resource>
-                            </resources>
-                        </configuration>
                     </execution>
                 </executions>
-            </plugin>
-
-            <!-- Tmp added to see compilation errors after upgrading dependencies, see
-            https://stackoverflow.com/questions/62583298/exception-in-thread-main-java-lang-assertionerror-->
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <configuration>
-                    <forceJavacCompilerUse>true</forceJavacCompilerUse>
-                </configuration>
             </plugin>
         </plugins>
     </build>
-
-    <profiles>
-        <profile>
-            <id>depcheck</id>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.owasp</groupId>
-                        <artifactId>dependency-check-maven</artifactId>
-                        <version>7.3.0</version>
-                        <configuration>
-                            <assemblyAnalyzerEnabled>false</assemblyAnalyzerEnabled>
-                            <failBuildOnCVSS>8</failBuildOnCVSS>
-                            <suppressionFiles>
-                                <suppressionFile>owasp-suppress.xml</suppressionFile>
-                            </suppressionFiles>
-                        </configuration>
-                        <executions>
-                            <execution>
-                                <goals>
-                                    <goal>check</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-    </profiles>
 </project>

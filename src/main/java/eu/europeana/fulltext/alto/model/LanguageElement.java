@@ -1,5 +1,5 @@
 /**
- * 
+ *
  */
 package eu.europeana.fulltext.alto.model;
 
@@ -7,8 +7,8 @@ package eu.europeana.fulltext.alto.model;
  * @author Hugo Manguinhas <hugo.manguinhas@europeana.eu>
  * @since 20 Dec 2018
  */
-public interface LanguageElement extends TextElement
-{
-    public String getLanguage();
-    public void   setLanguage(String lang);
+public interface LanguageElement extends TextElement {
+    String getLanguage();
+
+    void setLanguage(String lang);
 }
